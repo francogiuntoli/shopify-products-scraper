@@ -2,7 +2,7 @@ import fetch from "node-fetch"
 
 import fs from "fs"
 import csv from "fast-csv"
-import 'dotenv/config'
+import "dotenv/config"
 
 const query = `
   query {
@@ -33,42 +33,35 @@ const query = `
 
 const variables = {}
 
-
-fetch(`https://${process.env.SHOPIFY_DOMAIN}.myshopify.com/admin/api/unstable/graphql.json`, {
-    method: 'POST',
+fetch(
+  `https://${process.env.SHOPIFY_DOMAIN}.myshopify.com/admin/api/unstable/graphql.json`,
+  {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'X-Shopify-Access-Token': process.env.SHOPIFY_ADMIN_TOKEN
+      "Content-Type": "application/json",
+      "X-Shopify-Access-Token": process.env.SHOPIFY_ADMIN_TOKEN,
     },
     body: JSON.stringify({
       query,
-      variables
-    })
-  })
+      variables,
+    }),
+  }
+)
   .then((response) => response.json())
   .then(async (data) => {
-    // let start_cursor = data.data.products.pageInfo.startCursor
     let end_cursor = data.data.products.pageInfo.endCursor
 
-    // console.log(start_cursor, "start cursor")
     console.log(end_cursor, "end cursor")
-    // console.dir(data)
+
     const products = await data.data.products.edges.map((product) => {
-      
-      
       let descriptionTagValue = null
-     if(product.node.metafields){
-
-       product.node.metafields.edges.forEach(({ node: metafieldNode }) => {
-         if (
-           metafieldNode.key &&
-           metafieldNode.key === "global.description_tag"
-           ) {
-             descriptionTagValue = metafieldNode.value
-            }
-          })
-        }
-
+      if (product.node.metafields) {
+        product.node.metafields.edges.forEach(({ node: metafieldNode }) => {
+          if (metafieldNode.key && metafieldNode.key === "description_tag") {
+            descriptionTagValue = metafieldNode.value
+          }
+        })
+      }
 
       let currency
       let priceFixSyntaxMin =
@@ -76,13 +69,11 @@ fetch(`https://${process.env.SHOPIFY_DOMAIN}.myshopify.com/admin/api/unstable/gr
       let priceFixSyntaxMax =
         product.node.priceRangeV2.maxVariantPrice.amount.split(".")
 
-      
       let priceSyntaxMin =
-      priceFixSyntaxMin[1].length !== 1
+        priceFixSyntaxMin[1].length !== 1
           ? `${priceFixSyntaxMin[0]}.${priceFixSyntaxMin[1]}`
           : priceFixSyntaxMin[0] + ".00"
 
-          
       let priceSyntaxMax =
         priceFixSyntaxMax[1].length !== 1
           ? `${priceFixSyntaxMax[0]}.${priceFixSyntaxMax[1]}`
@@ -126,7 +117,7 @@ fetch(`https://${process.env.SHOPIFY_DOMAIN}.myshopify.com/admin/api/unstable/gr
         tokens: 200,
       }
     })
-  
+
     // Write the product data to the CSV file after all the tokens have been added
     const fileStream = fs.createWriteStream("sample.csv", {
       encoding: "utf8",

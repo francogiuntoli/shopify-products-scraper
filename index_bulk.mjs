@@ -1,8 +1,7 @@
 import fetch from "node-fetch"
 import fs from "fs"
 import csv from "fast-csv"
-import 'dotenv/config'
-
+import "dotenv/config"
 
 const bulk_ops = `mutation {
   bulkOperationRunQuery(query:"""
@@ -47,17 +46,19 @@ query {
 
 const variables = {}
 
-
-fetch(`https://${process.env.SHOPIFY_DOMAIN}.myshopify.com/admin/api/unstable/graphql.json`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    'X-Shopify-Access-Token': process.env.SHOPIFY_ADMIN_TOKEN
-  },
-  body: JSON.stringify({
-    query: bulk_ops,
-  }),
-})
+fetch(
+  `https://${process.env.SHOPIFY_DOMAIN}.myshopify.com/admin/api/unstable/graphql.json`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Shopify-Access-Token": process.env.SHOPIFY_ADMIN_TOKEN,
+    },
+    body: JSON.stringify({
+      query: bulk_ops,
+    }),
+  }
+)
   .then((response) => response.json())
   .then(async (data) => {
     console.log(
@@ -66,11 +67,13 @@ fetch(`https://${process.env.SHOPIFY_DOMAIN}.myshopify.com/admin/api/unstable/gr
       "bulk response"
     )
     setTimeout(async () => {
-      fetch(`https://${process.env.SHOPIFY_DOMAIN}.myshopify.com/admin/api/unstable/graphql.json`, {
+      fetch(
+        `https://${process.env.SHOPIFY_DOMAIN}.myshopify.com/admin/api/unstable/graphql.json`,
+        {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            'X-Shopify-Access-Token': process.env.SHOPIFY_ADMIN_TOKEN
+            "X-Shopify-Access-Token": process.env.SHOPIFY_ADMIN_TOKEN,
           },
           body: JSON.stringify({
             query: `
@@ -102,53 +105,64 @@ fetch(`https://${process.env.SHOPIFY_DOMAIN}.myshopify.com/admin/api/unstable/gr
               .then(async (text) => {
                 const jsonLines = text.trim().split("\n")
                 const jsonData = jsonLines.map((line) => JSON.parse(line))
-                const products = jsonData.map(product => {                  
-                  let currency;
-                  let priceFixSyntax = product.priceRangeV2.maxVariantPrice.amount.split('.')
-            
-                  let priceSyntax = priceFixSyntax[1].length !== 1 ? `${priceFixSyntax[0]}.${priceFixSyntax[1]}` : priceFixSyntax[0] + ".00"
-            
-                  switch(product.priceRangeV2.maxVariantPrice.currencyCode){
+                const products = jsonData.map((product) => {
+                  let currency
+                  let priceFixSyntax =
+                    product.priceRangeV2.maxVariantPrice.amount.split(".")
+
+                  let priceSyntax =
+                    priceFixSyntax[1].length !== 1
+                      ? `${priceFixSyntax[0]}.${priceFixSyntax[1]}`
+                      : priceFixSyntax[0] + ".00"
+
+                  switch (product.priceRangeV2.maxVariantPrice.currencyCode) {
                     case "GBP":
                       currency = "£"
-                      break;
+                      break
                     case "EUR":
                       currency = "€"
-                      break;
+                      break
                     case "USD":
                       currency = "$"
-                      break;
+                      break
                     case "AUD":
                       currency = "A$"
                     case "DKK":
                       currency = "DKK"
-                      break;
-                }
-            
-                    return {
-                      title: product.title,
-                      heading: product.productType == '' || product.productType == null ? "No type present" : product.productType,
-                      content: `Product Title:"${product.title}". ${product.description.length > 1 ? "Product Description:" + product.description +".": "" } It costs ${currency}${priceSyntax}`,
-                      tokens:150
-                    }
-                  });
+                      break
+                  }
 
-                  
-                  
-                 // Write the product data to the CSV file after all the tokens have been added
-                const fileStream = fs.createWriteStream('test_bulk.csv', { encoding: 'utf8' });
+                  return {
+                    title: product.title,
+                    heading:
+                      product.productType == "" || product.productType == null
+                        ? "No type present"
+                        : product.productType,
+                    content: `Product Title:"${product.title}". ${
+                      product.description.length > 1
+                        ? "Product Description:" + product.description + "."
+                        : ""
+                    } It costs ${currency}${priceSyntax}`,
+                    tokens: 150,
+                  }
+                })
+
+                const fileStream = fs.createWriteStream("test_bulk.csv", {
+                  encoding: "utf8",
+                })
 
                 csv
-                  .write(products, { headers: ['title', 'heading', 'content', 'tokens'], delimiter: ';' })
-                  .pipe(fileStream);
-                fileStream.on('finish', () => {
-                  console.log('CSV file successfully created');
+                  .write(products, {
+                    headers: ["title", "heading", "content", "tokens"],
+                    delimiter: ";",
+                  })
+                  .pipe(fileStream)
+                fileStream.on("finish", () => {
+                  console.log("CSV file successfully created")
                 })
               })
               .catch((error) => console.error(error))
           }
         })
-    
-      
-  }, 10000)
+    }, 10000)
   })
