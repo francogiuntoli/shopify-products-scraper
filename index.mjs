@@ -8,6 +8,10 @@ import "dotenv/config"
 //Paste end cursor from console (after running the app at least once) in the variable below or leave as an empty string
 let cursor = ""
 
+//Separator for metafields coming from .ENV file
+let metafields = process.env.SHOPIFY_METAFIELD_KEYS.split(',')
+
+
 //Shopify GraphQL query of products with filter for active products (also draft, but not archived), published (at least one channel) and with a price of more than 1 (of the store currency)
 
 const query = `
@@ -20,7 +24,7 @@ const query = `
           title
           productType
           description
-          metafields(first: 3, keys:["${process.env.SHOPIFY_METAFIELD_KEYS}"]) {
+          metafields(first: 3, keys:[${metafields.map(e=>JSON.stringify(e))}]) {
             edges {
               node {
                 value
