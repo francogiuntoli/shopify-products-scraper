@@ -1,8 +1,6 @@
 import fetch from "node-fetch"
 import fs from "fs"
 import csv from "fast-csv"
-import { stripHtml } from "string-strip-html"
-
 import "dotenv/config"
 
 //Paste end cursor from console (after running the app at least once) in the variable below or leave as an empty string
@@ -20,17 +18,10 @@ const query = `
           title
           productType
           description
-          metafields(first: 3, keys:["${process.env.SHOPIFY_METAFIELD_KEYS}"]) {
-            edges {
-              node {
-                value
-                key
-              }
-            }
-          }
           priceRangeV2{
             minVariantPrice{
               amount
+              currencyCode
             }
           	maxVariantPrice{
               amount
@@ -70,45 +61,49 @@ fetch(
 
     console.log(end_cursor, "end cursor")
 
+    //IF you need to extract metafields and add them to the description, you'll have to add metafields in the main query and also you could filter in the query itself / There's an extra filter below just to create the specific string for the description.
     const products = await data.data.products.edges.map((product) => {
+      //price formatting fix and to create min/max values to change price tag in the csv later
+      let currency
+      let priceFixSyntaxMin =
+        product.node.priceRangeV2.minVariantPrice.amount.split(".")
+      let priceFixSyntaxMax =
+        product.node.priceRangeV2.maxVariantPrice.amount.split(".")
 
-      //IF you need to extract metafields and add them to the description, you'll have to add the keys in the ENV file
-      // There's an extra filter below just to create the specific string and add it at the end of the description.
-      let descriptionTagValue = null
-      if (product.node.metafields) {
-        product.node.metafields.edges.forEach(({ node: metafieldNode }) => {
-          if (
-            metafieldNode.key &&
-            metafieldNode.key === process.env.SHOPIFY_METAFIELD_KEYS
-          ) {
-            let html_stripped = stripHtml(metafieldNode.value).result
+      let priceSyntaxMin =
+        priceFixSyntaxMin[1].length !== 1
+          ? `${priceFixSyntaxMin[0]}.${priceFixSyntaxMin[1]}`
+          : priceFixSyntaxMin[0] + ".00"
 
-            descriptionTagValue = html_stripped
+      let priceSyntaxMax =
+        priceFixSyntaxMax[1].length !== 1
+          ? `${priceFixSyntaxMax[0]}.${priceFixSyntaxMax[1]}`
+          : priceFixSyntaxMax[0] + ".00"
 
-            // descriptionTagValue = html_stripped.split(" Designed")[0] // THIS IS ONLY FOR JOSEPH JOSEPH
-          }
-        })
+      //correction of currency format in case of different stores currencies / you can add more variants of currency if needed to the switch below and add a default too as safeguard.
+      switch (product.node.priceRangeV2.maxVariantPrice.currencyCode) {
+        case "GBP":
+          currency = "£"
+          break
+        case "EUR":
+          currency = "€"
+          break
+        case "USD":
+          currency = "$"
+          break
+        case "AUD":
+          currency = "A$"
+          break
+        case "DKK":
+          currency = "DKK"
+          break
       }
-
-      //price formatting logic with product/store currency symbol
-      let priceMin = Number(
-        product.node.priceRangeV2.minVariantPrice.amount
-      ).toLocaleString("en-US", {
-        style: "currency",
-        currency: `${product.node.priceRangeV2.maxVariantPrice.currencyCode}`,
-      })
-
-      let priceMax = Number(
-        product.node.priceRangeV2.maxVariantPrice.amount
-      ).toLocaleString("en-US", {
-        style: "currency",
-        currency: `${product.node.priceRangeV2.maxVariantPrice.currencyCode}`,
-      })
 
       //formatting variables in case they are either undefined or not correct.
       let prices =
-        priceMin === priceMax ? `${priceMin}` : `Starting from ${priceMin}`
-
+        priceSyntaxMin === priceSyntaxMax
+          ? `${currency}${priceSyntaxMin}`
+          : `Starting from ${currency}${priceSyntaxMin}`
       let no_description = "No description present."
 
       return {
@@ -121,17 +116,16 @@ fetch(
           product.node.title
         }". Product Price: "${prices}". Product Description: "${
           product?.node?.description?.length > 1
-            ? product?.node?.description + ". " + descriptionTagValue ?? ""
-            : descriptionTagValue ?? no_description
+            ? product?.node?.description
+            : no_description
         }"`,
-
         //tokens are not relevant, you can leave as is.
         tokens: 200,
       }
     })
 
     // Write the product data to the CSV file
-    const fileStream = fs.createWriteStream("sample.csv", {
+    const fileStream = fs.createWriteStream("sample1.csv", {
       encoding: "utf8",
     })
 

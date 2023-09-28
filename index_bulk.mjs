@@ -6,13 +6,16 @@ import "dotenv/config"
 const bulk_ops = `mutation {
   bulkOperationRunQuery(query:"""
   {
-      products(query:"(available_for_sale:true)") {
+      products(query:"(available_for_sale:true) AND (status:ACTIVE) AND (published_status:published) AND (price:>1)") {
         edges {
           node {
             title
             productType
             description
             priceRangeV2{
+              minVariantPrice{
+                amount
+              }
               maxVariantPrice{
                 amount
                 currencyCode
@@ -106,44 +109,42 @@ fetch(
                 const jsonLines = text.trim().split("\n")
                 const jsonData = jsonLines.map((line) => JSON.parse(line))
                 const products = jsonData.map((product) => {
-                  let currency
-                  let priceFixSyntax =
-                    product.priceRangeV2.maxVariantPrice.amount.split(".")
+                  let priceMin = Number(
+                    product.priceRangeV2.minVariantPrice.amount
+                  ).toLocaleString("en-US", {
+                    style: "currency",
+                    currency: `${product.priceRangeV2.maxVariantPrice.currencyCode}`,
+                  })
+                  let priceSyntaxMin = priceMin
 
-                  let priceSyntax =
-                    priceFixSyntax[1].length !== 1
-                      ? `${priceFixSyntax[0]}.${priceFixSyntax[1]}`
-                      : priceFixSyntax[0] + ".00"
+                  let priceMax = Number(
+                    product.priceRangeV2.maxVariantPrice.amount
+                  ).toLocaleString("en-US", {
+                    style: "currency",
+                    currency: `${product.priceRangeV2.maxVariantPrice.currencyCode}`,
+                  })
+                  let priceSyntaxMax = priceMax
 
-                  switch (product.priceRangeV2.maxVariantPrice.currencyCode) {
-                    case "GBP":
-                      currency = "£"
-                      break
-                    case "EUR":
-                      currency = "€"
-                      break
-                    case "USD":
-                      currency = "$"
-                      break
-                    case "AUD":
-                      currency = "A$"
-                    case "DKK":
-                      currency = "DKK"
-                      break
-                  }
+                  let prices =
+                    priceSyntaxMin === priceSyntaxMax
+                      ? `${priceSyntaxMin}`
+                      : `Starting from ${priceSyntaxMin}`
+                  let no_description = "No description present."
 
                   return {
                     title: product.title,
                     heading:
-                      product.productType == "" || product.productType == null
+                      product.productType === "" || product.productType == null
                         ? "No type present"
                         : product.productType,
-                    content: `Product Title:"${product.title}". ${
-                      product.description.length > 1
-                        ? "Product Description:" + product.description + "."
-                        : ""
-                    } It costs ${currency}${priceSyntax}`,
-                    tokens: 150,
+                    content: `Product Title:"${
+                      product.title
+                    }". Product Price: "${prices}". Product Description: "${
+                      product?.description?.length > 1
+                        ? product?.description
+                        : no_description
+                    }"`,
+                    tokens: 200,
                   }
                 })
 

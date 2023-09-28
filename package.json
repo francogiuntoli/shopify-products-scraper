@@ -1,13 +1,13 @@
 {
   "scripts": {
-    "dev": "node index.mjs --experimental",
+    "main": "node index.mjs --experimental",
     "bulk": "node index_bulk.mjs --experimental"
   },
   "dependencies": {
     "dotenv": "^16.3.1",
     "esm": "^3.2.25",
     "fast-csv": "^4.3.6",
-    "node-fetch": "^3.3.0"
-
+    "node-fetch": "^3.3.0",
+    "string-strip-html": "^13.4.3"
   }
 }
