@@ -90,7 +90,7 @@ async function fetchAndWriteProducts(cursor) {
         const { key, value } = metafieldNode
 
         // Check if the metafield key exists in the list of keys from the .env file
-        if (metafield_keys.includes(key)) {
+        if (metafield_keys.includes(key) && value !== "") {
           //strip html tags from content
           let html_stripped = stripHtml(value).result
           metafieldValues.push(html_stripped)
