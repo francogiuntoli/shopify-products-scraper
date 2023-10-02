@@ -8,21 +8,19 @@ import "dotenv/config"
 let cursor = ""
 
 // Separator for metafields coming from .ENV file
-let metafield_keys = process.env.SHOPIFY_METAFIELD_KEYS.split(',')
+let metafield_keys = process.env.SHOPIFY_METAFIELD_KEYS.split(",")
 
 // Function to fetch products and write them to CSV
 async function fetchAndWriteProducts(cursor) {
   const query = `
     query {
-      products(first: 100 ${
-        cursor !== "" ? `after: "${cursor}"` : ""
-      } query: "(available_for_sale:true) AND (status:ACTIVE) AND (published_status:published) AND (price:>1)") {
+      products(first: 100 ${cursor !== "" ? `after: "${cursor}"` : ""} query: "(available_for_sale:true) AND (status:ACTIVE) AND (published_status:published) AND (price:>1)") {
         edges {
           node {
             title
             productType
             description
-            metafields(first: 5, keys:[${metafield_keys.map(e=>JSON.stringify(e))}]) {
+            metafields(first: 5, keys:[${metafield_keys.map((e) => JSON.stringify(e))}]) {
               edges {
                 node {
                   value
@@ -74,44 +72,47 @@ async function fetchAndWriteProducts(cursor) {
   }
 
   const endCursor = data.data.products.pageInfo.endCursor
-  const hasNextPage = data.data.products.pageInfo.hasNextPage
+  const hasNextPage = data.data.products.pageInfo.hasNextPage //always a boolean
 
   console.log(`Fetched products up to cursor: ${endCursor}`)
 
   const products = data.data.products.edges.map((product) => {
-    const {metafields, description, priceRangeV2, title, productType} = product.node
+
+    //deconstruct product for readability
+    const { metafields, description, priceRangeV2, title, productType } = product.node
+
     //IF you need to extract metafields and add them to the description, you'll have to add the keys in the ENV file
     // There's an extra filter below just to create the specific string and add it at the end of the description.
+    
     let metafieldValues = []
     if (metafields) {
       metafields.edges.forEach(({ node: metafieldNode }) => {
-        const {key, value} = metafieldNode
+        const { key, value } = metafieldNode
+
         // Check if the metafield key exists in the list of keys from the .env file
         if (metafield_keys.includes(key)) {
-          
           //strip html tags from content
-          let html_stripped = stripHtml(value).result;
-          metafieldValues.push(html_stripped);
+          let html_stripped = stripHtml(value).result
+          metafieldValues.push(html_stripped)
         }
-      });
+      })
     }
 
     let priceMin = Number(
-      product.node.priceRangeV2.minVariantPrice.amount
+      priceRangeV2.minVariantPrice.amount
     ).toLocaleString("en-US", {
       style: "currency",
-      currency: `${product.node.priceRangeV2.maxVariantPrice.currencyCode}`,
+      currency: `${priceRangeV2.maxVariantPrice.currencyCode}`,
     })
 
     let priceMax = Number(
-      product.node.priceRangeV2.maxVariantPrice.amount
+      priceRangeV2.maxVariantPrice.amount
     ).toLocaleString("en-US", {
       style: "currency",
-      currency: `${product.node.priceRangeV2.maxVariantPrice.currencyCode}`,
+      currency: `${priceRangeV2.maxVariantPrice.currencyCode}`,
     })
 
-    let prices =
-      priceMin === priceMax ? `${priceMin}` : `Starting from ${priceMin}`
+    let prices = priceMin === priceMax ? `${priceMin}` : `Starting from ${priceMin}`
 
     let no_description = "No description present."
 
@@ -123,10 +124,12 @@ async function fetchAndWriteProducts(cursor) {
           : productType,
       content: `Product Title:"${title}". Product Price: "${prices}". Product Description: "${
         description.length > 1 && metafieldValues.length > 0
-          ? description + ". Product Extra Information: " + metafieldValues.join(". ")
-          : description.length < 1 && metafieldValues.length> 0 
-            ? metafieldValues.join(". ")
-            : no_description
+          ? description +
+            ". Product Extra Information: " +
+            metafieldValues.join(". ")
+          : description.length < 1 && metafieldValues.length > 0
+          ? metafieldValues.join(". ")
+          : no_description
       }"`,
       //tokens are not relevant, you can leave as is.
       tokens: 200,
@@ -139,9 +142,12 @@ async function fetchAndWriteProducts(cursor) {
 // Function to write products to CSV
 async function writeProductsToCSV(products) {
   return new Promise((resolve, reject) => {
-    const fileStream = fs.createWriteStream("sample.csv", {
-      encoding: "utf8",
-    })
+    const fileStream = fs.createWriteStream(
+      `${process.env.SHOPIFY_DOMAIN + ".csv"}`,
+      {
+        encoding: "utf8",
+      }
+    )
 
     csv
       .write(products, {
@@ -168,7 +174,11 @@ async function fetchAndWriteProductsInBatches() {
   let allProducts = []
 
   while (hasNextPage) {
-    const { products, endCursor, hasNextPage: nextPage } = await fetchAndWriteProducts(cursor)
+    const {
+      products,
+      endCursor,
+      hasNextPage: nextPage,
+    } = await fetchAndWriteProducts(cursor)
     allProducts = allProducts.concat(products)
     hasNextPage = nextPage
     cursor = endCursor
