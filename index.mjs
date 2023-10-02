@@ -129,6 +129,8 @@ async function fetchAndWriteProducts(cursor) {
             metafieldValues.join(". ")
           : description.length < 1 && metafieldValues.length > 0
           ? metafieldValues.join(". ")
+          : description.length > 1
+          ? description
           : no_description
       }"`,
       //tokens are not relevant, you can leave as is.
