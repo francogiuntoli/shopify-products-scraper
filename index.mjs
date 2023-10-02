@@ -92,7 +92,7 @@ async function fetchAndWriteProducts(cursor) {
         // Check if the metafield key exists in the list of keys from the .env file
         if (metafield_keys.includes(key) && value !== "") {
           //strip html tags from content
-          let html_stripped = stripHtml(value).result
+          let html_stripped = sanitizeString(value)
           metafieldValues.push(html_stripped)
         }
       })
@@ -115,7 +115,8 @@ async function fetchAndWriteProducts(cursor) {
     let prices = priceMin === priceMax ? `${priceMin}` : `Starting from ${priceMin}`
 
     let no_description = "No description present."
-
+    // let safe_description = process.env.DESCRIPTION_EXCLUDE ? "" : description
+    let safe_description = sanitizeString(description)
     return {
       title: title,
       heading:
@@ -123,14 +124,14 @@ async function fetchAndWriteProducts(cursor) {
           ? "No type present"
           : productType,
       content: `Product Title:"${title}". Product Price: "${prices}". Product Description: "${
-        description.length > 1 && metafieldValues.length > 0
-          ? description +
+        safe_description.length > 0 && metafieldValues.length > 0
+          ? safe_description +
             ". Product Extra Information: " +
             metafieldValues.join(". ")
-          : description.length < 1 && metafieldValues.length > 0
+          : safe_description.length < 1 && metafieldValues.length > 0
           ? metafieldValues.join(". ")
-          : description.length > 1
-          ? description
+          : safe_description.length > 0
+          ? safe_description
           : no_description
       }"`,
       //tokens are not relevant, you can leave as is.
@@ -193,3 +194,27 @@ async function fetchAndWriteProductsInBatches() {
 fetchAndWriteProductsInBatches().catch((error) => {
   console.error("Script error:", error)
 })
+
+function sanitizeString(inputString) {
+  // Remove script tags and their contents
+  const sanitizedString = inputString.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  
+  // Remove HTML tags and attributes
+  const cleanString = sanitizedString.replace(/<\/?[^>]+(>|$)/g, '');
+
+  // Remove JavaScript variable declarations and if {} else {} blocks with extra spaces
+  const noJavaScriptVarsString = cleanString.replace(/(var\s+[^;]+;)|\bif\s*\(\s*.*?\s*\)\s*\{\s*[^{}]*\s*\}\s*(?:else\s*\{\s*[^{}]*\s*\})?/g, '');
+  
+  // Remove jQuery code
+  const noJQueryString = noJavaScriptVarsString.replace(/\$\(.*?\);/g, '');
+
+
+  // Remove extra spaces
+  const cleanedOutput = noJQueryString.replace(/\s+/g, ' ');
+
+  return cleanedOutput.trim();
+}
+
+
+
+
