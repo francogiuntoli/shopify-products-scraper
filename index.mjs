@@ -92,7 +92,7 @@ async function fetchAndWriteProducts(cursor) {
         // Check if the metafield key exists in the list of keys from the .env file
         if (metafield_keys.includes(key) && value !== "") {
           //strip html tags from content
-          let html_stripped = sanitizeString(value)
+          let html_stripped = stripHtml(value).result
           metafieldValues.push(html_stripped)
         }
       })
@@ -116,7 +116,7 @@ async function fetchAndWriteProducts(cursor) {
 
     let no_description = "No description present."
     // let safe_description = process.env.DESCRIPTION_EXCLUDE ? "" : description
-    let safe_description = sanitizeString(description)
+    let safe_description = stripHtml(description).result
     return {
       title: title,
       heading:
