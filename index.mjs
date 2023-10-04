@@ -4,7 +4,7 @@ import csv from "fast-csv"
 import { stripHtml } from "string-strip-html"
 import "dotenv/config"
 
-// Paste end cursor from console (after running the app at least once) in the variable below or leave it as an empty string
+// initiate cursor as empty for batch request to update the value if there's a next page
 let cursor = ""
 
 // Separator for metafields coming from .ENV file
