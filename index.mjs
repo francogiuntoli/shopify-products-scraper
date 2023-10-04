@@ -81,7 +81,7 @@ async function fetchAndWriteProducts(cursor) {
     //deconstruct product for readability
     const { metafields, description, priceRangeV2, title, productType } = product.node
 
-    //IF you need to extract metafields and add them to the description, you'll have to add the keys in the ENV file
+    // IF you need to extract metafields and add them to the description, you'll have to add the keys in the ENV file
     // There's an extra filter below just to create the specific string and add it at the end of the description.
     
     let metafieldValues = []
@@ -207,7 +207,6 @@ function sanitizeString(inputString) {
   
   // Remove jQuery code
   const noJQueryString = noJavaScriptVarsString.replace(/\$\(.*?\);/g, '');
-
 
   // Remove extra spaces
   const cleanedOutput = noJQueryString.replace(/\s+/g, ' ');
