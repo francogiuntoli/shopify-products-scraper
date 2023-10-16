@@ -17,7 +17,6 @@ async function fetchAndWriteProducts(cursor) {
       products(first: 100 ${cursor !== "" ? `after: "${cursor}"` : ""} query: "(available_for_sale:true) AND (status:ACTIVE) AND (published_status:published) AND (price:>1)") {
         edges {
           node {
-            onlineStoreUrl
             title
             productType
             description
@@ -80,7 +79,7 @@ async function fetchAndWriteProducts(cursor) {
   const products = data.data.products.edges.map((product) => {
 
     //deconstruct product for readability
-    const { metafields, description, priceRangeV2, title, productType, onlineStoreUrl } = product.node
+    const { metafields, description, priceRangeV2, title, productType } = product.node
 
     // IF you need to extract metafields and add them to the description, you'll have to add the keys in the ENV file
     // There's an extra filter below just to create the specific string and add it at the end of the description.
@@ -124,20 +123,17 @@ async function fetchAndWriteProducts(cursor) {
         productType === "" || productType == null
           ? "No type present"
           : productType,
-      content: JSON.stringify({
-        "product_title": title,
-        "product_price": prices,
-        "product_description":
-          safe_description.length > 0 && metafieldValues.length > 0
-            ? safe_description +
-              ". Product Extra Information: " +
-              metafieldValues.join(". ")
-            : safe_description.length < 1 && metafieldValues.length > 0
-            ? metafieldValues.join(". ")
-            : safe_description.length > 0
-            ? safe_description
-            : no_description,
-      }),
+      content: `Product Title:"${title}". Product Price: "${prices}". Product Description: "${
+        safe_description.length > 0 && metafieldValues.length > 0
+          ? safe_description +
+            ". Product Extra Information: " +
+            metafieldValues.join(". ")
+          : safe_description.length < 1 && metafieldValues.length > 0
+          ? metafieldValues.join(". ")
+          : safe_description.length > 0
+          ? safe_description
+          : no_description
+      }"`,
       //tokens are not relevant, you can leave as is.
       tokens: 200,
     }
@@ -179,7 +175,6 @@ async function writeProductsToCSV(products) {
 async function fetchAndWriteProductsInBatches() {
   let hasNextPage = true
   let allProducts = []
-  let uniqueTitles = new Set() // Set to store unique titles
 
   while (hasNextPage) {
     const {
@@ -187,25 +182,13 @@ async function fetchAndWriteProductsInBatches() {
       endCursor,
       hasNextPage: nextPage,
     } = await fetchAndWriteProducts(cursor)
-
-    // Check for duplicates and filter them out
-    const uniqueProducts = products.filter((product) => {
-      if (uniqueTitles.has(product.content)) {
-        return false
-      } else {
-        uniqueTitles.add(product.content)
-        return true
-      }
-    })
-
-    allProducts = allProducts.concat(uniqueProducts)
+    allProducts = allProducts.concat(products)
     hasNextPage = nextPage
     cursor = endCursor
   }
 
   await writeProductsToCSV(allProducts)
 }
-
 
 // Run the script
 fetchAndWriteProductsInBatches().catch((error) => {
