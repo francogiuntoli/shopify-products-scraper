@@ -4,5 +4,5 @@ Create a `.env` file in the root directory with `SHOPIFY_ADMIN_TOKEN`, `SHOPIFY_
 
 For `SHOPIFY_METAFIELD_KEYS` keep in mind that you can use multiple ones, and they need to be separated by a comma without spaces.
 
-After running `npm i` to install all dependencies, you can run `npm run main` for the version including metafields or `npm run bulk` to get all products in bulk (does not include metafields or sanitization).
+After running `npm i` to install all dependencies, you can run `npm run main` or `npm run assist` for the version including metafields. Running `npm run bulk` to get all products in bulk (does not include metafields or sanitization).
 
