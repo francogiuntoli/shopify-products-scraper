@@ -148,7 +148,9 @@ fetch(
                   }
                 })
 
-                const fileStream = fs.createWriteStream("test_bulk.csv", {
+                const fileStream = fs.createWriteStream(
+                  `scrapes/bulk/${process.env.SHOPIFY_DOMAIN + ".csv"}`,
+                {
                   encoding: "utf8",
                 })
 

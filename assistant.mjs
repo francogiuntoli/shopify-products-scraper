@@ -154,7 +154,7 @@ async function fetchAndWriteProducts(cursor) {
 async function writeProductsToCSV(products) {
   return new Promise((resolve, reject) => {
     const fileStream = fs.createWriteStream(
-      `${process.env.SHOPIFY_DOMAIN + ".csv"}`,
+      `scrapes/assistant/${process.env.SHOPIFY_DOMAIN + ".csv"}`,
       {
         encoding: "utf8",
       }
